@@ -14,6 +14,8 @@ if funcs_dir not in sys.path:
 # Import required functions
 from get_input_columns import get_input_columns
 from transform_replay_data import transform_replay_data
+from load_id_to_wr_mapping import load_id_to_wr_mapping
+from load_id_to_name_mapping import load_id_to_name_mapping
 from load_id_to_wr_turn_mapping import load_id_to_wr_turn_mapping
 
 input_file_folder_path = r'./data/raw_csv'
@@ -29,19 +31,30 @@ def add_unique_identifier(data):
     data['unique_id'] = data.apply(generate_unique_id, axis=1)
     return data
 
+
 # Function to process data in chunks
-def process_data_with_chunking(input_file, transform_function, save_path, mapping, dynamic_winrate=True, nrows=100000, chunk_size=5000):
+def process_data_with_chunking(
+    input_file,
+    transform_function,
+    save_path,
+    id_to_wr_mapping,
+    id_to_name_mapping,
+    dynamic_id_to_wr_mapping,
+    dynamic_winrate=True,
+    nrows=100000,
+    chunk_size=5000,
+):
     print(f"Loading data from {input_file}...")
     data = pd.read_csv(input_file, nrows=nrows)
-    
+
     print("Adding unique identifiers to the data...")
     data = add_unique_identifier(data)
 
     # Load processed unique IDs if save file exists
     processed_ids = set()
-    if os.path.exists(save_file_path):
-        print(f"Save file found at {save_file_path}. Skipping already processed rows...")
-        processed_ids = set(pd.read_csv(save_file_path, usecols=['unique_id'])['unique_id'])
+    if os.path.exists(save_path):
+        print(f"Save file found at {save_path}. Skipping already processed rows...")
+        processed_ids = set(pd.read_csv(save_path, usecols=["unique_id"])["unique_id"])
     else:
         print("No save file found. Starting fresh.")
 
@@ -53,18 +66,25 @@ def process_data_with_chunking(input_file, transform_function, save_path, mappin
     # Process in chunks
     for start_idx in range(0, total_rows, chunk_size):
         end_idx = min(start_idx + chunk_size, total_rows)
-        print(f"\nProcessing rows {start_idx + 1} to {end_idx}...")
+        print(f"\nProcessing rows {start_idx + 1} to {end_idx} with dynamic_winrate={dynamic_winrate}...")
         chunk = unprocessed_data.iloc[start_idx:end_idx]
 
-        output_dynamic = transform_function(chunk, mapping, dynamic_winrate=dynamic_winrate)
+        output_dynamic = transform_function(
+            chunk,
+            id_to_wr_mapping=id_to_wr_mapping,
+            id_to_name_mapping=id_to_name_mapping,
+            dynamic_id_to_wr_mapping=dynamic_id_to_wr_mapping,
+            dynamic_winrate=dynamic_winrate,
+        )
 
         # Append or create the save file
-        if os.path.exists(save_file_path):
-            output_dynamic.to_csv(save_file_path, mode='a', index=False, header=False)
+        if os.path.exists(save_path):
+            output_dynamic.to_csv(save_path, mode="a", index=False, header=False)
         else:
-            output_dynamic.to_csv(save_file_path, mode='w', index=False, header=True)
+            output_dynamic.to_csv(save_path, mode="w", index=False, header=True)
 
         print(f"Chunk processed and saved.")
+
 
 # Main execution
 if __name__ == "__main__":
@@ -74,7 +94,9 @@ if __name__ == "__main__":
 
     # Load the mapping
     print("Loading mapping...")
-    load_id_to_wr_turn_mapping = load_id_to_wr_turn_mapping()
+    id_to_wr_mapping = load_id_to_wr_mapping()
+    id_to_name_mapping = load_id_to_name_mapping()
+    dynamic_id_to_wr_mapping = load_id_to_wr_turn_mapping()
 
     # Process each CSV file
     for file in os.listdir(input_file_folder_path):
@@ -87,10 +109,12 @@ if __name__ == "__main__":
                 input_file=input_file_path,
                 transform_function=transform_replay_data,
                 save_path=save_file_path,
-                mapping=load_id_to_wr_turn_mapping,
+                id_to_wr_mapping=id_to_wr_mapping,
+                id_to_name_mapping=id_to_name_mapping,
+                dynamic_id_to_wr_mapping=dynamic_id_to_wr_mapping,
                 dynamic_winrate=True,
                 nrows=1000,
-                chunk_size=100
+                chunk_size=100,
             )
 
     print("\nAll files processed.")
