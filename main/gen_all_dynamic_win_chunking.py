@@ -16,7 +16,6 @@ from get_input_columns import get_input_columns
 from transform_replay_data import transform_replay_data
 from load_id_to_wr_turn_mapping import load_id_to_wr_turn_mapping
 
-# Define paths
 input_file_folder_path = r'./data/raw_csv'
 save_file_path = r"./data/processed_csv/dynamic_winrate_by_turn.csv"
 
@@ -90,8 +89,8 @@ if __name__ == "__main__":
                 save_path=save_file_path,
                 mapping=load_id_to_wr_turn_mapping,
                 dynamic_winrate=True,
-                nrows=100000,
-                chunk_size=10000
+                nrows=1000,
+                chunk_size=100
             )
 
     print("\nAll files processed.")
