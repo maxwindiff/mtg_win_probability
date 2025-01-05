@@ -1,8 +1,7 @@
 import pandas as pd
 import os
 def load_id_to_wr_turn_mapping(path_to_wr_by_turn_data = None):
-    print('inside load_id_to_wr_turn_mapping')
-    print('cwd', os.getcwd())
+
     # wr_by_turn = pd.read_csv(r"C:\Users\Jack Wright\Documents\GitHub\sevLandsPublicData\data\winrates_by_turn\dsk_winrates_by_turn.csv")
     if path_to_wr_by_turn_data:
         wr_by_turn = pd.read_csv(path_to_wr_by_turn_data)
